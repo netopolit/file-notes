@@ -36,7 +36,7 @@ export default class FileNotePlugin extends Plugin {
 			this.app.vault.on('create', (file) => {
 				// Auto-create notes if enabled
 				if (this.settings.autoCreate && this.shouldCreateNoteFor(file)) {
-					this.fileOps.createFileNote(file, false);
+					void this.fileOps.createFileNote(file, false);
 				}
 				this.hiddenFiles.debouncedUpdate();
 			})
@@ -63,7 +63,7 @@ export default class FileNotePlugin extends Plugin {
 	 * @param file - The source file to create a note for
 	 */
 	createFileNote(file: TFile) {
-		this.fileOps.createFileNote(file);
+		void this.fileOps.createFileNote(file);
 	}
 
 	/**
@@ -71,7 +71,7 @@ export default class FileNotePlugin extends Plugin {
 	 * @param file - The source file whose note should be removed
 	 */
 	removeFileNote(file: TFile) {
-		this.fileOps.removeFileNote(file);
+		void this.fileOps.removeFileNote(file);
 	}
 
 	/**
@@ -136,7 +136,7 @@ export default class FileNotePlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<FileNoteSettings>);
 		this.rebuildExclusionSets();
 		this.fileOps?.updateSettings(this.settings);
 		this.hiddenFiles?.updateSettings(this.settings);
@@ -266,9 +266,10 @@ export default class FileNotePlugin extends Plugin {
 			return;
 		}
 
-		new ConfirmDeleteModal(this.app, notesToDelete, async () => {
-			const result = await this.fileOps.removeFileNotes(files);
-			new Notice(formatBatchResultMessage(result, 'Removed', false));
+		new ConfirmDeleteModal(this.app, notesToDelete, () => {
+			void this.fileOps.removeFileNotes(files).then(result => {
+				new Notice(formatBatchResultMessage(result, 'Removed', false));
+			});
 		}).open();
 	}
 

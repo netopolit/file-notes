@@ -145,7 +145,7 @@ export class FileNoteOperations {
 		}
 
 		try {
-			await this.app.vault.delete(mdFile);
+			await this.app.fileManager.trashFile(mdFile);
 			if (showNotice) new Notice('Removed File note');
 		} catch (error) {
 			console.error('Failed to remove file note:', error);
@@ -173,7 +173,7 @@ export class FileNoteOperations {
 			}
 
 			try {
-				await this.app.vault.delete(mdFile);
+				await this.app.fileManager.trashFile(mdFile);
 				success++;
 			} catch (error) {
 				console.error(`Failed to remove note for ${file.path}:`, error);

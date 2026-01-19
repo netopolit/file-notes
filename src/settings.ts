@@ -83,11 +83,7 @@ export class FileNoteSettingTab extends PluginSettingTab {
 		// Note template setting - custom layout for better UX
 		const templateSetting = new Setting(containerEl)
 			.setName('Note template')
-			.setDesc(createFragment(frag => {
-				frag.appendText('Template for the content of created notes. Use ');
-				frag.createEl('code', {text: '{{filename}}'});
-				frag.appendText(' as a placeholder for the source file name (e.g., video.mp4).');
-			}));
+			.setDesc('Template for the content of created notes. Use {{filename}} as a placeholder for the source file name.');
 
 		// Create textarea container for custom positioning
 		const textareaContainer = templateSetting.settingEl.createDiv({cls: 'file-note-template-container'});
@@ -96,9 +92,9 @@ export class FileNoteSettingTab extends PluginSettingTab {
 			attr: {placeholder: '![[{{filename}}]]'}
 		});
 		textarea.value = this.plugin.settings.noteTemplate;
-		textarea.addEventListener('input', async () => {
+		textarea.addEventListener('input', () => {
 			this.plugin.settings.noteTemplate = textarea.value;
-			await this.plugin.saveSettings();
+			void this.plugin.saveSettings();
 		});
 
 		// Add examples below textarea
