@@ -41,6 +41,11 @@ export class FileNoteOperations {
 	private app: App;
 	private settings: FileNoteSettings;
 
+	/**
+	 * Creates a new FileNoteOperations instance.
+	 * @param app - The Obsidian app instance
+	 * @param settings - The plugin settings
+	 */
 	constructor(app: App, settings: FileNoteSettings) {
 		this.app = app;
 		this.settings = settings;
@@ -91,7 +96,7 @@ export class FileNoteOperations {
 		try {
 			const content = this.getNoteContent(file);
 			await this.app.vault.create(mdPath, content);
-			if (showNotice) new Notice('Created File note');
+			if (showNotice) new Notice('Created file note');
 		} catch (error) {
 			console.error('Failed to create file note:', error);
 			new Notice(`Failed to create file note: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -146,7 +151,7 @@ export class FileNoteOperations {
 
 		try {
 			await this.app.fileManager.trashFile(mdFile);
-			if (showNotice) new Notice('Removed File note');
+			if (showNotice) new Notice('Removed file note');
 		} catch (error) {
 			console.error('Failed to remove file note:', error);
 			new Notice(`Failed to remove file note: ${error instanceof Error ? error.message : 'Unknown error'}`);

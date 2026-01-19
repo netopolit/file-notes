@@ -22,6 +22,10 @@ export default class FileNotePlugin extends Plugin {
 	private excludedFilesSet: Set<string> = new Set();
 	private excludedFoldersSet: Set<string> = new Set();
 
+	/**
+	 * Called when the plugin is loaded.
+	 * Initializes settings, registers commands, context menus, and event handlers.
+	 */
 	async onload() {
 		await this.loadSettings();
 		this.fileOps = new FileNoteOperations(this.app, this.settings);
@@ -54,6 +58,10 @@ export default class FileNotePlugin extends Plugin {
 		this.app.workspace.onLayoutReady(() => this.hiddenFiles.update());
 	}
 
+	/**
+	 * Called when the plugin is unloaded.
+	 * Cleans up any pending operations.
+	 */
 	onunload() {
 		this.hiddenFiles.cancelPendingUpdate();
 	}
@@ -135,6 +143,10 @@ export default class FileNotePlugin extends Plugin {
 		this.hiddenFiles.update();
 	}
 
+	/**
+	 * Loads plugin settings from disk and merges with defaults.
+	 * Updates all dependent components with the new settings.
+	 */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<FileNoteSettings>);
 		this.rebuildExclusionSets();
@@ -142,6 +154,10 @@ export default class FileNotePlugin extends Plugin {
 		this.hiddenFiles?.updateSettings(this.settings);
 	}
 
+	/**
+	 * Saves plugin settings to disk.
+	 * Invalidates caches and updates all dependent components.
+	 */
 	async saveSettings() {
 		await this.saveData(this.settings);
 		this.cachedExtensions = null; // Invalidate cache when settings change
@@ -161,13 +177,14 @@ export default class FileNotePlugin extends Plugin {
 	/**
 	 * Parses the configured file extensions from settings.
 	 * Results are cached until settings change.
+	 * Accepts extensions with or without leading dots (e.g., "mp4" or ".mp4").
 	 * @returns Set of lowercase extensions, filtering out empty strings and 'md'
 	 */
 	getExtensions(): Set<string> {
 		if (this.cachedExtensions === null) {
 			const extensions = this.settings.fileExtensions
 				.split(',')
-				.map(ext => ext.trim().toLowerCase())
+				.map(ext => ext.trim().toLowerCase().replace(/^\./, ''))
 				.filter(ext => ext.length > 0 && ext !== 'md');
 			this.cachedExtensions = new Set(extensions);
 		}

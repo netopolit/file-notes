@@ -14,7 +14,7 @@ export function registerContextMenu(plugin: FileNotePlugin) {
 			if (!isFile && !isFolder) return;
 
 			menu.addItem((item) => {
-				item.setTitle('File Notes commands')
+				item.setTitle('File notes commands')
 					.setIcon('file-text');
 
 				const submenu: Menu = (item as MenuItem & {setSubmenu: () => Menu}).setSubmenu();

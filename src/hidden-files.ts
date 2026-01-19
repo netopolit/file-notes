@@ -21,6 +21,11 @@ export class HiddenFilesManager {
 		true
 	);
 
+	/**
+	 * Creates a new HiddenFilesManager instance.
+	 * @param app - The Obsidian app instance
+	 * @param settings - The plugin settings
+	 */
 	constructor(app: App, settings: FileNoteSettings) {
 		this.app = app;
 		this.settings = settings;

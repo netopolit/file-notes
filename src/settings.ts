@@ -36,11 +36,20 @@ export const DEFAULT_SETTINGS: FileNoteSettings = {
 export class FileNoteSettingTab extends PluginSettingTab {
 	plugin: FileNotePlugin;
 
+	/**
+	 * Creates a new settings tab instance.
+	 * @param app - The Obsidian app instance
+	 * @param plugin - The plugin instance
+	 */
 	constructor(app: App, plugin: FileNotePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
+	/**
+	 * Renders the settings tab UI.
+	 * Creates controls for file extensions, auto-create toggle, hide files toggle, and note template.
+	 */
 	display(): void {
 		const {containerEl} = this;
 		containerEl.empty();
@@ -48,9 +57,8 @@ export class FileNoteSettingTab extends PluginSettingTab {
 		// File extensions setting
 		new Setting(containerEl)
 			.setName('File extensions')
-			.setDesc('Comma-separated list of file extensions to create notes for (e.g., mp4, pdf, png)')
+			.setDesc('Enter file extensions separated by commas')
 			.addText(text => text
-				.setPlaceholder('mp4, pdf, png')
 				.setValue(this.plugin.settings.fileExtensions)
 				.onChange(async (value) => {
 					this.plugin.settings.fileExtensions = value;

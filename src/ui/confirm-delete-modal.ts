@@ -12,12 +12,22 @@ export class ConfirmDeleteModal extends Modal {
 	private files: TFile[];
 	private onConfirm: () => void;
 
+	/**
+	 * Creates a new confirmation modal for file deletion.
+	 * @param app - The Obsidian app instance
+	 * @param files - Array of files to be deleted
+	 * @param onConfirm - Callback function to execute when deletion is confirmed
+	 */
 	constructor(app: App, files: TFile[], onConfirm: () => void) {
 		super(app);
 		this.files = files;
 		this.onConfirm = onConfirm;
 	}
 
+	/**
+	 * Called when the modal is opened.
+	 * Renders the confirmation UI with file list and action buttons.
+	 */
 	onOpen() {
 		const {contentEl} = this;
 		contentEl.empty();
@@ -58,6 +68,10 @@ export class ConfirmDeleteModal extends Modal {
 		}, MODAL_FOCUS_DELAY_MS);
 	}
 
+	/**
+	 * Called when the modal is closed.
+	 * Cleans up the modal content.
+	 */
 	onClose() {
 		const {contentEl} = this;
 		contentEl.empty();
