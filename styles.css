@@ -33,6 +33,47 @@ If your plugin does not need CSS, delete this file.
 	gap: 8px;
 }
 
+/* Notes folder setting styles */
+.setting-item:has(.file-note-folder-container) {
+	display: block;
+}
+
+.setting-item:has(.file-note-folder-container) .setting-item-info {
+	width: 100%;
+}
+
+.file-note-folder-container {
+	width: 100%;
+	margin: 12px 0;
+}
+
+.file-note-folder-input {
+	width: 100%;
+	padding: 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+}
+
+.file-note-folder-input:focus {
+	border-color: var(--interactive-accent);
+	outline: none;
+}
+
+.file-note-folder-examples {
+	width: 100%;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin-top: 8px;
+	line-height: 1.6;
+}
+
+.file-note-folder-examples code {
+	font-size: var(--font-ui-smaller);
+}
+
 /* Note template setting styles */
 .setting-item:has(.file-note-template-container) {
 	display: block;

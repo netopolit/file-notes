@@ -1,4 +1,4 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, Notice, PluginSettingTab, Setting, ToggleComponent} from "obsidian";
 import FileNotePlugin from "./main";
 
 /**
@@ -19,6 +19,8 @@ export interface FileNoteSettings {
 	noteTemplate: string;
 	/** Folder path for storing notes. Empty = same folder, ./Name = relative subfolder, Name = central folder */
 	notesFolder: string;
+	/** Whether to add source frontmatter to notes (required for reliable remove in central folder mode with conflicts) */
+	addSourceFrontmatter: boolean;
 }
 
 /** Default settings values */
@@ -29,7 +31,8 @@ export const DEFAULT_SETTINGS: FileNoteSettings = {
 	excludedFolders: [],
 	hideFilesWithNotes: false,
 	noteTemplate: '![[{{filename}}]]',
-	notesFolder: ''
+	notesFolder: '',
+	addSourceFrontmatter: false
 };
 
 /**
@@ -68,30 +71,89 @@ export class FileNoteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		// Notes folder setting
+		// Notes folder setting - custom layout for input between description and examples
 		const notesFolderSetting = new Setting(containerEl)
 			.setName('Notes folder')
-			.addText(text => text
-				.setPlaceholder('Same folder as source file')
-				.setValue(this.plugin.settings.notesFolder)
-				.onChange(async (value) => {
-					this.plugin.settings.notesFolder = value.trim();
-					await this.plugin.saveSettings();
-				}));
+			.setDesc('Where to store file notes.');
 
-		// Add description with examples below the setting
-		const notesFolderDesc = notesFolderSetting.descEl;
-		notesFolderDesc.appendText('Where to store file notes.');
-		notesFolderDesc.createEl('br');
-		notesFolderDesc.createEl('br');
-		notesFolderDesc.createEl('strong', {text: 'Empty'});
-		notesFolderDesc.appendText(' — same folder as source file');
-		notesFolderDesc.createEl('br');
-		notesFolderDesc.createEl('code', {text: './Notes'});
-		notesFolderDesc.appendText(' — subfolder relative to source file');
-		notesFolderDesc.createEl('br');
-		notesFolderDesc.createEl('code', {text: 'Notes'});
-		notesFolderDesc.appendText(' — central folder (conflicts auto-resolved)');
+		// Helper to check if current value is central folder mode
+		// Anything starting with "." is treated as relative path (not central)
+		const isCentralFolderMode = (value: string): boolean => {
+			return !!(value && !value.startsWith('.'));
+		};
+
+		// Create input container for full-width input
+		const inputContainer = notesFolderSetting.settingEl.createDiv({cls: 'file-note-folder-container'});
+		const input = inputContainer.createEl('input', {
+			cls: 'file-note-folder-input',
+			attr: {type: 'text', placeholder: 'Same folder as source file'}
+		});
+		input.value = this.plugin.settings.notesFolder;
+
+		// Add examples below input
+		const folderExamplesEl = notesFolderSetting.settingEl.createDiv({cls: 'file-note-folder-examples'});
+		folderExamplesEl.createEl('strong', {text: 'Examples:'});
+		folderExamplesEl.createEl('br');
+		folderExamplesEl.createEl('span', {text: 'Empty'});
+		folderExamplesEl.appendText(' — same folder as source file');
+		folderExamplesEl.createEl('br');
+		folderExamplesEl.createEl('code', {text: './Notes'});
+		folderExamplesEl.appendText(' — subfolder relative to source file');
+		folderExamplesEl.createEl('br');
+		folderExamplesEl.createEl('code', {text: 'Notes'});
+		folderExamplesEl.appendText(' — central folder ');
+		folderExamplesEl.createEl('strong', {text: '(requires source frontmatter)'});
+
+		// Add source frontmatter toggle
+		let sourceFrontmatterToggle: ToggleComponent;
+		const sourceFrontmatterSetting = new Setting(containerEl)
+			.setName('Add source frontmatter')
+			.setDesc('Add source file path to note frontmatter. Required for central folder mode to reliably track which note belongs to which source file.')
+			.addToggle(toggle => {
+				sourceFrontmatterToggle = toggle;
+				toggle
+					.setValue(this.plugin.settings.addSourceFrontmatter)
+					.onChange(async (value) => {
+						this.plugin.settings.addSourceFrontmatter = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		// Function to update toggle state based on folder mode
+		const updateFrontmatterToggle = (folderValue: string) => {
+			const isCentral = isCentralFolderMode(folderValue);
+			if (isCentral) {
+				// Auto-enable and disable toggle in central mode
+				this.plugin.settings.addSourceFrontmatter = true;
+				sourceFrontmatterToggle.setValue(true);
+				sourceFrontmatterToggle.setDisabled(true);
+			} else {
+				// Enable toggle for other modes
+				sourceFrontmatterToggle.setDisabled(false);
+			}
+		};
+
+		// Set initial toggle state
+		updateFrontmatterToggle(this.plugin.settings.notesFolder);
+
+		// Update toggle when folder value changes
+		input.addEventListener('input', () => {
+			const value = input.value.trim();
+			this.plugin.settings.notesFolder = value;
+			updateFrontmatterToggle(value);
+			void this.plugin.saveSettings();
+		});
+
+		// Show notice when clicking disabled toggle
+		sourceFrontmatterSetting.settingEl.addEventListener('click', (e) => {
+			if (isCentralFolderMode(this.plugin.settings.notesFolder)) {
+				// Check if click was on the toggle area
+				const target = e.target as HTMLElement;
+				if (target.closest('.checkbox-container')) {
+					new Notice('Required for central folder mode');
+				}
+			}
+		});
 
 		// Auto-create toggle
 		new Setting(containerEl)

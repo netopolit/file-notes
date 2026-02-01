@@ -64,6 +64,16 @@ Control where file notes are stored with flexible folder options:
 
 Folders are created automatically when the first note is saved.
 
+**Source frontmatter**: In central folder mode, notes include frontmatter to track which source file they belong to:
+
+```yaml
+---
+source: "[[Videos/clip.mp4]]"
+---
+```
+
+This is automatically enabled for central folder mode (required for reliable remove when files have the same name). For other modes, you can optionally enable it via "Add source frontmatter" in settings.
+
 ### Customizable Note Template
 
 Configure the content of created notes using a template with the `{{filename}}` placeholder.
@@ -91,6 +101,7 @@ Open command palette with `Ctrl/Cmd + P`:
 |---------|-------------|---------|
 | File extensions | Comma-separated list of extensions (e.g., `mp4, pdf, png`) | `mp4` |
 | Notes folder | Where to store notes: empty for same folder, `./Name` for relative subfolder, `Name` for central folder | *(empty)* |
+| Add source frontmatter | Add source file path to note frontmatter (auto-enabled for central folder mode) | Off |
 | Auto-create notes | Automatically create notes when matching files are added | Off |
 | Hide files with notes | Hide source files in the file explorer | Off |
 | Note template | Template content using `{{filename}}` placeholder | `![[{{filename}}]]` |

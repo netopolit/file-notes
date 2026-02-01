@@ -61,6 +61,49 @@ export class FileNoteOperations {
 	}
 
 	/**
+	 * Checks if the current notes folder setting is central folder mode.
+	 * Central folder mode stores all notes in one folder, requiring source tracking.
+	 * Anything starting with "." is treated as a relative path (not central).
+	 * @returns True if using central folder mode
+	 */
+	isCentralFolderMode(): boolean {
+		const notesFolder = this.settings.notesFolder;
+		return !!(notesFolder && !notesFolder.startsWith('.'));
+	}
+
+	/**
+	 * Finds a note in the notes folder that has the given source file in its frontmatter.
+	 * Used in central folder mode to find the correct note when names may conflict.
+	 * @param sourcePath - The source file path to search for
+	 * @returns The note file if found, null otherwise
+	 */
+	findNoteBySource(sourcePath: string): TFile | null {
+		const notesFolder = this.settings.notesFolder;
+		if (!notesFolder) return null;
+
+		// Get all markdown files in the notes folder
+		const allFiles = this.app.vault.getMarkdownFiles();
+		const notesInFolder = allFiles.filter(f => f.path.startsWith(notesFolder + '/'));
+
+		// Search for a note with matching source frontmatter
+		for (const note of notesInFolder) {
+			const cache = this.app.metadataCache.getFileCache(note);
+			const source = cache?.frontmatter?.source as unknown;
+			if (typeof source === 'string') {
+				// Source is stored as wikilink: "[[path/to/file.pdf]]"
+				// Extract the path from the wikilink
+				const match = source.match(/^\[\[(.+)\]\]$/);
+				const extractedPath = match ? match[1] : source;
+				if (extractedPath === sourcePath) {
+					return note;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Returns the base path for the file note corresponding to a source file.
 	 * Uses the notesFolder setting to determine the location:
 	 * - Empty: same folder as source file
@@ -101,7 +144,7 @@ export class FileNoteOperations {
 		const notesFolder = this.settings.notesFolder;
 
 		// Only apply conflict resolution for central folder mode (not empty, not relative)
-		if (!notesFolder || notesFolder.startsWith('./')) {
+		if (!notesFolder || notesFolder.startsWith('.')) {
 			return basePath;
 		}
 
@@ -136,11 +179,19 @@ export class FileNoteOperations {
 
 	/**
 	 * Generates note content from the template, replacing {{filename}} with the actual file name.
+	 * Optionally adds frontmatter with source path when enabled in settings.
 	 * @param file - The source file to generate content for
 	 * @returns The note content with placeholders replaced
 	 */
 	getNoteContent(file: TFile): string {
-		return this.settings.noteTemplate.replace(/\{\{filename\}\}/g, file.name);
+		const templateContent = this.settings.noteTemplate.replace(/\{\{filename\}\}/g, file.name);
+
+		// Add frontmatter with source path if enabled
+		if (this.settings.addSourceFrontmatter) {
+			return `---\nsource: "[[${file.path}]]"\n---\n${templateContent}`;
+		}
+
+		return templateContent;
 	}
 
 	/**
@@ -150,12 +201,12 @@ export class FileNoteOperations {
 	 * @param showNotice - Whether to show a notice on success/failure
 	 */
 	async createFileNote(file: TFile, showNotice = true) {
-		// For non-central modes, check if note already exists at base path
-		const basePath = this.getNotePath(file);
-		const notesFolder = this.settings.notesFolder;
-		const isCentralFolder = notesFolder && !notesFolder.startsWith('./');
+		// Check if note already exists
+		const existingNote = this.settings.addSourceFrontmatter
+			? this.findNoteBySource(file.path)
+			: this.app.vault.getAbstractFileByPath(this.getNotePath(file));
 
-		if (!isCentralFolder && this.app.vault.getAbstractFileByPath(basePath)) {
+		if (existingNote) {
 			if (showNotice) new Notice('File note already exists');
 			return;
 		}
@@ -183,14 +234,15 @@ export class FileNoteOperations {
 		let skipped = 0;
 		let failed = 0;
 
-		const notesFolder = this.settings.notesFolder;
-		const isCentralFolder = notesFolder && !notesFolder.startsWith('./');
+		const useSourceLookup = this.settings.addSourceFrontmatter;
 
 		for (const file of files) {
-			const basePath = this.getNotePath(file);
+			// Check if note already exists
+			const noteExists = useSourceLookup
+				? this.findNoteBySource(file.path)
+				: this.app.vault.getAbstractFileByPath(this.getNotePath(file));
 
-			// For non-central modes, skip if note already exists
-			if (!isCentralFolder && this.app.vault.getAbstractFileByPath(basePath)) {
+			if (noteExists) {
 				skipped++;
 				continue;
 			}
@@ -216,8 +268,10 @@ export class FileNoteOperations {
 	 * @param showNotice - Whether to show a notice on success/failure
 	 */
 	async removeFileNote(file: TFile, showNotice = true) {
-		const mdPath = this.getNotePath(file);
-		const mdFile = this.app.vault.getAbstractFileByPath(mdPath);
+		// Find the note file
+		const mdFile = this.settings.addSourceFrontmatter
+			? this.findNoteBySource(file.path)
+			: this.app.vault.getAbstractFileByPath(this.getNotePath(file)) as TFile | null;
 
 		if (!mdFile || !(mdFile instanceof TFile)) {
 			if (showNotice) new Notice('File note does not exist');
@@ -243,9 +297,13 @@ export class FileNoteOperations {
 		let skipped = 0;
 		let failed = 0;
 
+		const useSourceLookup = this.settings.addSourceFrontmatter;
+
 		for (const file of files) {
-			const mdPath = this.getNotePath(file);
-			const mdFile = this.app.vault.getAbstractFileByPath(mdPath);
+			// Find the note file
+			const mdFile = useSourceLookup
+				? this.findNoteBySource(file.path)
+				: this.app.vault.getAbstractFileByPath(this.getNotePath(file)) as TFile | null;
 
 			if (!mdFile || !(mdFile instanceof TFile)) {
 				skipped++;
@@ -270,8 +328,12 @@ export class FileNoteOperations {
 	 * @returns Array of TFile objects for notes that exist
 	 */
 	getExistingNotes(files: TFile[]): TFile[] {
+		const useSourceLookup = this.settings.addSourceFrontmatter;
+
 		return files
-			.map(f => this.app.vault.getAbstractFileByPath(this.getNotePath(f)))
+			.map(f => useSourceLookup
+				? this.findNoteBySource(f.path)
+				: this.app.vault.getAbstractFileByPath(this.getNotePath(f)))
 			.filter((f): f is TFile => f instanceof TFile);
 	}
 }
