@@ -61,7 +61,7 @@ export class FileNoteSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		// Header
-		containerEl.createEl('h2', {text: 'File Notes Settings'});
+		new Setting(containerEl).setName('File notes settings').setHeading();
 
 		// File extensions setting
 		new Setting(containerEl)
